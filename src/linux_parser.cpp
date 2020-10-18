@@ -167,7 +167,7 @@ vector<long> LinuxParser::CpuUtilization() {
 
 //return the total number of processes
 int LinuxParser::TotalProcesses() { 
-int number_of_processes, value;
+int value;
 string label, line;
 std::ifstream filestream (kProcDirectory + kStatFilename);
 
@@ -178,17 +178,17 @@ std::ifstream filestream (kProcDirectory + kStatFilename);
       //asign the value to three float variables 
       while (linestream >> label >> value) {
         if (label == "processes") {
-          number_of_processes = value;
+          return value;
           break;
         }
       }
     }
   }
-  return number_of_processes;
+  return 0;
 }
 
 // Read and return the number of running processes
-int LinuxParser::RunningProcesses() { int number_of_processes, value;
+int LinuxParser::RunningProcesses() { int value;
 string label, line;
 std::ifstream filestream (kProcDirectory + kStatFilename);
 
@@ -199,13 +199,13 @@ std::ifstream filestream (kProcDirectory + kStatFilename);
       //asign the value to three float variables 
       while (linestream >> label >> value) {
         if (label == "procs_running") {
-          number_of_processes = value;
+          return value;
           break;
         }
       }
     }
   }
-  return number_of_processes;
+  return 0;
 }
 
 
@@ -222,7 +222,8 @@ string LinuxParser::Command(int pid) {
 string LinuxParser::Ram(int pid) { 
 
 std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
-string line, label, ram, value;;
+string line, label, ram;
+long value;
 
 if (filestream.is_open()) {
         while (std::getline(filestream, line)) {
@@ -230,56 +231,56 @@ if (filestream.is_open()) {
           std::istringstream linestream(line);
           
           while (linestream >> label >> value) {
-            if (label == "WmSize") {
-            ram = value;
+            if (label == "VmSize") {
+            return std::to_string(value*0.001);
             break;
-
           }
         }
       }
    }
-  return ram;
+  // KB->MB
+  return "";
 }
 
 
 string LinuxParser::Uid(int pid) { 
-    string line, uid, label; 
-    int value;
+    string line, label, value; 
     std::ifstream filestream(kProcDirectory + std::to_string(pid) +kStatusFilename);
     if (filestream.is_open()) {
     
     while (std::getline(filestream, line)) {
+      std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       //asign the value to three float variables 
       while (linestream >> label >> value) {
         if (label == "Uid") {
-          uid = std::to_string(value);
+          
+          return value;
           break;
         }
       }
     }
   }
-    return uid;
+    return "";
  }
 
+
 string LinuxParser::User(int pid) {
-  // read the user ID for this process
-  string uid = Uid(pid);
-  string line, label, value, random_str, user;
-  // find user name for this user ID in /etc/passwd
+  std::string line, key, value, uid;
   std::ifstream filestream(kPasswordPath);
   if (filestream.is_open()) {
     while (std::getline(filestream, line)) {
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
-      while (linestream >> value >> random_str >> label) {
-        if (label == uid) {
+      while (linestream >> key >> value >> uid) {
+        if (uid == LinuxParser::Uid(pid)) {
+          return key;
           break;
         }
       }
     }
   }
-  return value;
+  return "";
 }
 
 //UpTime for a single processor
